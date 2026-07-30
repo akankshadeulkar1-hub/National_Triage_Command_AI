@@ -49,7 +49,10 @@ export default function CommandCenterPage() {
     const fetchInitialDispatches = async () => {
       try {
         const res = await fetch(`${BACKEND_URL}/api/dispatch/incoming/all`, {
-          headers: { 'Bypass-Tunnel-Reminder': 'true' },
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            'User-Agent': 'NationalTriageApp/1.0',
+          },
         });
         if (res.ok) {
           const data: IncomingPatient[] = await res.json();

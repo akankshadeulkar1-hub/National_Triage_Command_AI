@@ -296,6 +296,10 @@ export default function ParamedicTriageApp() {
 
       const response = await fetch(`${BACKEND_URL}/api/triage`, {
         method: 'POST',
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'User-Agent': 'NationalTriageApp/1.0',
+        },
         body: formData,
       });
 
@@ -336,12 +340,20 @@ export default function ParamedicTriageApp() {
 
         response = await fetch(`${BACKEND_URL}/api/triage`, {
           method: 'POST',
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            'User-Agent': 'NationalTriageApp/1.0',
+          },
           body: formData,
         });
       } else {
         response = await fetch(`${BACKEND_URL}/api/triage`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Bypass-Tunnel-Reminder': 'true',
+            'User-Agent': 'NationalTriageApp/1.0',
+          },
           body: JSON.stringify({ vitalsText }),
         });
       }
@@ -380,7 +392,12 @@ export default function ParamedicTriageApp() {
         try {
           const res = await fetch(
             `${BACKEND_URL}/api/hospitals?lat=${latitude}&lng=${longitude}&specialty=${encodeURIComponent(specialty)}`,
-            { headers: { 'Bypass-Tunnel-Reminder': 'true' } }
+            {
+              headers: {
+                'Bypass-Tunnel-Reminder': 'true',
+                'User-Agent': 'NationalTriageApp/1.0',
+              },
+            }
           );
           if (!res.ok) {
             throw new Error(`Hospital search failed with status ${res.status}`);
@@ -411,7 +428,12 @@ export default function ParamedicTriageApp() {
     try {
       const res = await fetch(
         `${BACKEND_URL}/api/hospitals?lat=${lat}&lng=${lng}&specialty=${encodeURIComponent(specialty)}`,
-        { headers: { 'Bypass-Tunnel-Reminder': 'true' } }
+        {
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            'User-Agent': 'NationalTriageApp/1.0',
+          },
+        }
       );
       if (res.ok) {
         const data: Hospital[] = await res.json();
@@ -445,7 +467,11 @@ export default function ParamedicTriageApp() {
       try {
         await fetch(`${BACKEND_URL}/api/dispatch`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Bypass-Tunnel-Reminder': 'true',
+            'User-Agent': 'NationalTriageApp/1.0',
+          },
           body: JSON.stringify({
             hospitalId: hospital.place_id,
             hospitalName: hospital.name,
