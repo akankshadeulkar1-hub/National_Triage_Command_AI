@@ -1,0 +1,48 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Maven Start Up Batch script
+# ----------------------------------------------------------------------------
+
+# OS specific support.  $var _must_ be set to true or false.
+cygwin=false;
+darwin=false;
+mingw=false;
+case "`uname`" in
+  CYGWIN*) cygwin=true ;;
+  DARWIN*) darwin=true ;;
+  MINGW*) mingw=true ;;
+esac
+
+## locate directory containing script
+PRG="$0"
+
+# Need this stuff to determine where the script is.
+while [ -h "$PRG" ]; do
+  ls=`ls -ld "$PRG"`
+  link=`sed -e 's/.*-> //' "$PRG"`
+  if expr "$link" : '/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG=`dirname "$PRG"`"/$link"
+  fi
+done
+
+SAVED=`pwd`
+cd "`dirname "$PRG"`/" >/dev/null
+APP_HOME="`pwd -P`"
+cd "$SAVED" >/dev/null
+
+CLASSPATH="$APP_HOME/.mvn/wrapper/maven-wrapper.jar"
+WRAPPER_LAUNCHER="org.apache.maven.wrapper.MavenWrapperMain"
+
+# Download wrapper jar if not present
+if [ ! -f "$CLASSPATH" ]; then
+    mkdir -p "$APP_HOME/.mvn/wrapper"
+    if command -v curl >/dev/null 2>&1; then
+        curl -sH "User-Agent: Mozilla/5.0" -o "$CLASSPATH" "https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q -O "$CLASSPATH" "https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar"
+    fi
+fi
+
+exec java -classpath "$CLASSPATH" "-Dmaven.home=$APP_HOME/.mvn/wrapper" "-Dmaven.multiModuleProjectDirectory=$APP_HOME" $WRAPPER_LAUNCHER "$@"
