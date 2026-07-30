@@ -36,7 +36,7 @@ type IncomingPatient = {
   mechanismOfInjury?: string;
 };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fast-coats-do.loca.lt';
 
 export default function CommandCenterPage() {
   const [patients, setPatients] = useState<IncomingPatient[]>([]);
@@ -48,7 +48,9 @@ export default function CommandCenterPage() {
   useEffect(() => {
     const fetchInitialDispatches = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/dispatch/incoming/all`);
+        const res = await fetch(`${BACKEND_URL}/api/dispatch/incoming/all`, {
+          headers: { 'Bypass-Tunnel-Reminder': 'true' },
+        });
         if (res.ok) {
           const data: IncomingPatient[] = await res.json();
           setPatients(data);
@@ -182,8 +184,8 @@ export default function CommandCenterPage() {
     <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans select-none">
       {/* High-Tech Technical Header */}
       <header className="w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="max-w-[1800px] w-full mx-auto px-4 sm:px-6 py-3 md:py-0 min-h-[4rem] flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-start">
             <Link
               href="/"
               className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-bold border border-slate-700"
@@ -194,36 +196,36 @@ export default function CommandCenterPage() {
 
             <div className="h-6 w-px bg-slate-800 hidden sm:block"></div>
 
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-xl bg-red-600/20 border border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)]">
-                <Siren className="w-6 h-6 animate-pulse" />
+            <div className="flex items-center space-x-2.5">
+              <div className="p-2 rounded-xl bg-red-600/20 border border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)] flex-shrink-0">
+                <Siren className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
               </div>
               <div>
-                <h1 className="text-lg font-black uppercase tracking-wider text-white flex items-center space-x-2">
+                <h1 className="text-base sm:text-lg font-black uppercase tracking-wider text-white flex flex-wrap items-center gap-2">
                   <span>Trauma Center Live Feed</span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 tracking-widest flex items-center space-x-1">
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 tracking-widest flex items-center space-x-1">
                     <Wifi className="w-3 h-3 animate-pulse" />
                     <span>WEBSOCKET REAL-TIME</span>
                   </span>
                 </h1>
-                <p className="text-[11px] font-bold text-slate-400">
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400">
                   Real-Time Inbound Ambulance AI Triage Stream
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3 w-full md:w-auto justify-end">
             {/* Real-Time WebSockets Status */}
-            <div className="hidden md:flex items-center space-x-2 text-xs font-semibold text-slate-300 bg-slate-950 px-3.5 py-1.5 rounded-xl border border-slate-800">
+            <div className="flex items-center space-x-2 text-[11px] sm:text-xs font-semibold text-slate-300 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
               <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`}></span>
               <span className="font-extrabold">
                 {isConnected ? 'STOMP / SockJS Connected' : 'Connecting WebSocket...'}
               </span>
-              {lastUpdated && <span className="text-slate-500 ml-1">({lastUpdated})</span>}
+              {lastUpdated && <span className="text-slate-500 hidden sm:inline ml-1">({lastUpdated})</span>}
             </div>
 
-            <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-emerald-400">
+            <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-emerald-400">
               <Radio className="w-3.5 h-3.5 animate-ping text-emerald-400" />
               <span>SPRING BOOT SYNC</span>
             </div>
@@ -232,7 +234,7 @@ export default function CommandCenterPage() {
       </header>
 
       {/* Main Command Center Dashboard */}
-      <main className="flex-1 max-w-[1800px] w-full mx-auto p-6 space-y-6">
+      <main className="flex-1 max-w-[1800px] w-full mx-auto p-4 sm:p-6 space-y-6">
         {/* Dashboard Status Bar */}
         <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
           <div className="flex items-center space-x-4">

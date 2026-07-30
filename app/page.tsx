@@ -74,7 +74,7 @@ type ActiveDispatchData = {
   hospitalLocation: { lat: number; lng: number };
 } | null;
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fast-coats-do.loca.lt';
 
 export default function ParamedicTriageApp() {
   const [navTab, setNavTab] = useState<'dispatch' | 'history'>('dispatch');
@@ -379,7 +379,8 @@ export default function ParamedicTriageApp() {
 
         try {
           const res = await fetch(
-            `${BACKEND_URL}/api/hospitals?lat=${latitude}&lng=${longitude}&specialty=${encodeURIComponent(specialty)}`
+            `${BACKEND_URL}/api/hospitals?lat=${latitude}&lng=${longitude}&specialty=${encodeURIComponent(specialty)}`,
+            { headers: { 'Bypass-Tunnel-Reminder': 'true' } }
           );
           if (!res.ok) {
             throw new Error(`Hospital search failed with status ${res.status}`);
@@ -409,7 +410,8 @@ export default function ParamedicTriageApp() {
     const specialty = triageData?.category || 'Emergency Care';
     try {
       const res = await fetch(
-        `${BACKEND_URL}/api/hospitals?lat=${lat}&lng=${lng}&specialty=${encodeURIComponent(specialty)}`
+        `${BACKEND_URL}/api/hospitals?lat=${lat}&lng=${lng}&specialty=${encodeURIComponent(specialty)}`,
+        { headers: { 'Bypass-Tunnel-Reminder': 'true' } }
       );
       if (res.ok) {
         const data: Hospital[] = await res.json();
@@ -531,7 +533,7 @@ export default function ParamedicTriageApp() {
   const CategoryIcon = theme?.categoryIcon ?? Stethoscope;
 
   return (
-    <div className="h-screen w-screen bg-slate-950 text-white flex flex-col font-sans overflow-hidden select-none">
+    <div className="min-h-screen lg:h-screen w-full bg-slate-950 text-white flex flex-col font-sans overflow-x-hidden select-none">
       {/* Top Command Navbar */}
       <Navbar
         activeTab={navTab}
@@ -554,12 +556,12 @@ export default function ParamedicTriageApp() {
       {/* Real-time GPS Ambulance Dispatch Modal */}
       {activeDispatch && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 max-w-3xl w-full shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-4 sm:p-6 max-w-3xl w-full shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto animate-fadeIn">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center space-x-3">
-                <Siren className="w-7 h-7 text-red-500 animate-pulse" />
+                <Siren className="w-6 h-6 sm:w-7 sm:h-7 text-red-500 animate-pulse flex-shrink-0" />
                 <div>
-                  <h3 className="text-xl font-black text-white">Emergency Response GPS Radar Dispatch</h3>
+                  <h3 className="text-base sm:text-xl font-black text-white">Emergency Response GPS Radar Dispatch</h3>
                   <p className="text-xs text-slate-300 font-medium">Live position tracking between hospital & patient location</p>
                 </div>
               </div>
@@ -580,7 +582,7 @@ export default function ParamedicTriageApp() {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setActiveDispatch(null)}
-                className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-all border border-slate-700"
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm transition-all border border-slate-700"
               >
                 Close Radar View
               </button>
@@ -589,12 +591,12 @@ export default function ParamedicTriageApp() {
         </div>
       )}
 
-      {/* Strict No-Scroll Side-by-Side 3-Column Command Grid Layout */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 h-[calc(100vh-3.5rem)] overflow-hidden">
+      {/* Responsive Command Grid Layout (Stacked on Mobile, 3-Col on Desktop) */}
+      <div className="flex-1 max-w-[1800px] w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-[calc(100vh-3.5rem)] overflow-y-auto lg:overflow-hidden">
         {/* =================================================== */}
         {/* LEFT COLUMN (1/3 Width): AI Triage & Voice / Text Input */}
         {/* =================================================== */}
-        <section className="lg:col-span-1 h-full overflow-y-auto pr-1 space-y-5 flex flex-col scrollbar-thin scrollbar-thumb-slate-800">
+        <section className="lg:col-span-1 h-auto lg:h-full overflow-y-visible lg:overflow-y-auto pr-0 lg:pr-1 space-y-5 flex flex-col scrollbar-thin scrollbar-thumb-slate-800">
           <div className="border-b border-slate-800/80 pb-3 flex items-center justify-between flex-shrink-0">
             <h2 className="text-base font-black flex items-center space-x-2 text-white uppercase tracking-wider">
               <Mic className="w-4 h-4 text-red-500" />
@@ -807,7 +809,7 @@ export default function ParamedicTriageApp() {
         {/* =================================================== */}
         {/* RIGHT COLUMN (2/3 Width): Hospital Command Dashboard */}
         {/* =================================================== */}
-        <section className="lg:col-span-2 h-full overflow-y-auto pl-1 space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
+        <section className="lg:col-span-2 h-auto lg:h-full overflow-y-visible lg:overflow-y-auto pl-0 lg:pl-1 space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
           <div className="border-b border-slate-800/80 pb-3 flex items-center justify-between">
             <h2 className="text-base font-black flex items-center space-x-2 text-white uppercase tracking-wider">
               <HospitalIcon className="w-4 h-4 text-emerald-400" />
