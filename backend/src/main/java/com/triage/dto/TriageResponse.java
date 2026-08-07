@@ -1,6 +1,7 @@
 package com.triage.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
 public class TriageResponse {
 
@@ -22,6 +23,9 @@ public class TriageResponse {
     @JsonProperty("mechanismOfInjury")
     private String mechanismOfInjury;
 
+    @JsonProperty("first_aid_steps")
+    private List<String> firstAidSteps;
+
     public TriageResponse() {}
 
     public TriageResponse(String priority, String category, String summary, Double confidenceScore, String transcript) {
@@ -32,13 +36,14 @@ public class TriageResponse {
         this.transcript = transcript;
     }
 
-    public TriageResponse(String priority, String category, String summary, Double confidenceScore, String transcript, String mechanismOfInjury) {
+    public TriageResponse(String priority, String category, String summary, Double confidenceScore, String transcript, String mechanismOfInjury, List<String> firstAidSteps) {
         this.priority = priority;
         this.category = category;
         this.summary = summary;
         this.confidenceScore = confidenceScore;
         this.transcript = transcript;
         this.mechanismOfInjury = mechanismOfInjury;
+        this.firstAidSteps = firstAidSteps;
     }
 
     public String getPriority() {
@@ -87,5 +92,13 @@ public class TriageResponse {
 
     public void setMechanismOfInjury(String mechanismOfInjury) {
         this.mechanismOfInjury = mechanismOfInjury;
+    }
+
+    public List<String> getFirstAidSteps() {
+        return firstAidSteps;
+    }
+
+    public void setFirstAidSteps(List<String> firstAidSteps) {
+        this.firstAidSteps = firstAidSteps;
     }
 }

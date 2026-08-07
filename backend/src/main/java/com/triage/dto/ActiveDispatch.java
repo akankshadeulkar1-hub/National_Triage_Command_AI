@@ -1,5 +1,8 @@
 package com.triage.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+
 public class ActiveDispatch {
     private String id;
     private String hospitalId;
@@ -8,9 +11,15 @@ public class ActiveDispatch {
     private String category;
     private String summary;
     private double etaMinutes;
-    private String status; // "IN_TRANSIT", "ARRIVED"
+    private String status; // "IN_TRANSIT", "ACCEPTED", "ARRIVED"
     private long timestamp;
     private String mechanismOfInjury;
+
+    @JsonProperty("bedAssigned")
+    private String bedAssigned;
+
+    @JsonProperty("first_aid_steps")
+    private List<String> firstAidSteps;
 
     public ActiveDispatch() {}
 
@@ -37,6 +46,21 @@ public class ActiveDispatch {
         this.status = status;
         this.timestamp = timestamp;
         this.mechanismOfInjury = mechanismOfInjury;
+    }
+
+    public ActiveDispatch(String id, String hospitalId, String hospitalName, String priority, String category, String summary, double etaMinutes, String status, long timestamp, String mechanismOfInjury, String bedAssigned, List<String> firstAidSteps) {
+        this.id = id;
+        this.hospitalId = hospitalId;
+        this.hospitalName = hospitalName;
+        this.priority = priority;
+        this.category = category;
+        this.summary = summary;
+        this.etaMinutes = etaMinutes;
+        this.status = status;
+        this.timestamp = timestamp;
+        this.mechanismOfInjury = mechanismOfInjury;
+        this.bedAssigned = bedAssigned;
+        this.firstAidSteps = firstAidSteps;
     }
 
     public String getId() { return id; }
@@ -68,4 +92,10 @@ public class ActiveDispatch {
 
     public String getMechanismOfInjury() { return mechanismOfInjury; }
     public void setMechanismOfInjury(String mechanismOfInjury) { this.mechanismOfInjury = mechanismOfInjury; }
+
+    public String getBedAssigned() { return bedAssigned; }
+    public void setBedAssigned(String bedAssigned) { this.bedAssigned = bedAssigned; }
+
+    public List<String> getFirstAidSteps() { return firstAidSteps; }
+    public void setFirstAidSteps(List<String> firstAidSteps) { this.firstAidSteps = firstAidSteps; }
 }

@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { History, Activity, Radio, Siren } from 'lucide-react';
+import { History, Activity, Radio, Siren, ShieldCheck, UserCheck, Ambulance, Building2 } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: 'dispatch' | 'history';
@@ -10,13 +11,35 @@ interface NavbarProps {
 }
 
 export default function Navbar({ activeTab, onSelectTab, historyCount }: NavbarProps) {
+  const [userRole, setUserRole] = useState<string>('ROLE_ADMIN');
+
+  useEffect(() => {
+    // Read current role from cookie
+    const match = document.cookie.match(/(?:^|; )user_role=([^;]*)/);
+    if (match) {
+      setUserRole(match[1]);
+    } else {
+      // Default to ROLE_ADMIN if not set
+      document.cookie = 'user_role=ROLE_ADMIN; path=/; max-age=86400';
+      setUserRole('ROLE_ADMIN');
+    }
+  }, []);
+
+  const handleToggleRole = () => {
+    const nextRole = userRole.includes('ADMIN') ? 'ROLE_PARAMEDIC' : 'ROLE_ADMIN';
+    document.cookie = `user_role=${nextRole}; path=/; max-age=86400`;
+    setUserRole(nextRole);
+  };
+
+  const isAdmin = userRole.includes('ADMIN');
+
   return (
     <header className="w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-xl flex-shrink-0 z-40">
       <div className="max-w-[1800px] w-full mx-auto px-4 sm:px-6 min-h-[3.5rem] py-2 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
         {/* Left: Secure Branding - National Triage Command AI */}
         <div className="flex items-center space-x-3 cursor-pointer w-full md:w-auto justify-between md:justify-start" onClick={() => onSelectTab('dispatch')}>
           <div className="flex items-center space-x-3">
-            {/* Tactical Medical Radar Logo in Secure Emerald Theme */}
+            {/* Tactical Medical Radar Logo */}
             <div className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-600 via-emerald-800 to-slate-950 border border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.4)] group overflow-hidden flex-shrink-0">
               <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:6px_6px] opacity-30"></div>
               
@@ -48,14 +71,18 @@ export default function Navbar({ activeTab, onSelectTab, historyCount }: NavbarP
             </div>
           </div>
 
-          {/* System Online status badge on mobile top right */}
-          <div className="flex md:hidden items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800 text-[11px] font-bold text-emerald-400">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span>Online</span>
-          </div>
+          {/* Role Toggle Switcher on Mobile */}
+          <button
+            onClick={handleToggleRole}
+            className={`md:hidden flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
+              isAdmin
+                ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
+                : 'bg-red-950/80 border-red-500 text-red-300'
+            }`}
+          >
+            {isAdmin ? <Building2 className="w-3 h-3 text-emerald-400" /> : <Ambulance className="w-3 h-3 text-red-400" />}
+            <span>{isAdmin ? 'ADMIN' : 'PARAMEDIC'}</span>
+          </button>
         </div>
 
         {/* Center: Navigation Tabs */}
@@ -99,14 +126,27 @@ export default function Navbar({ activeTab, onSelectTab, historyCount }: NavbarP
           </button>
         </nav>
 
-        {/* Right: System Status Badge (Desktop) */}
-        <div className="hidden md:flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-950 border border-slate-800">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-          <span className="text-xs font-bold text-emerald-400 tracking-wide">System Online</span>
-          <Radio className="w-3.5 h-3.5 text-emerald-400 ml-1" />
+        {/* Right: RBAC Interactive Role Switcher Badge (Desktop) */}
+        <div className="hidden md:flex items-center space-x-3">
+          <button
+            onClick={handleToggleRole}
+            title="Click to toggle between ADMIN (Hospital Staff) and PARAMEDIC (Field Mobile) roles"
+            className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-full border text-xs font-black transition-all cursor-pointer shadow-md active:scale-95 ${
+              isAdmin
+                ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300 hover:bg-emerald-900/90 shadow-emerald-500/10'
+                : 'bg-red-950/90 border-red-500 text-red-300 hover:bg-red-900/90 shadow-red-500/10'
+            }`}
+          >
+            {isAdmin ? (
+              <Building2 className="w-4 h-4 text-emerald-400" />
+            ) : (
+              <Ambulance className="w-4 h-4 text-red-400" />
+            )}
+            <span>ROLE: {isAdmin ? 'ADMIN (Hospital)' : 'PARAMEDIC (Field)'}</span>
+            <span className="text-[9px] bg-black/40 px-1.5 py-0.5 rounded font-mono text-slate-300 border border-slate-700">
+              SWITCH
+            </span>
+          </button>
         </div>
       </div>
     </header>

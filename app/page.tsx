@@ -30,11 +30,15 @@ import {
   Radio,
   Hospital as HospitalIcon,
   Camera,
-  Eye
+  Eye,
+  LifeBuoy,
+  CheckCircle2,
+  ShieldAlert
 } from 'lucide-react';
 
 import Navbar from './components/Navbar';
 import CaseHistoryDrawer, { HistoryItem } from './components/CaseHistoryDrawer';
+import OnboardingFlow from './components/OnboardingFlow';
 
 // Dynamic import of Leaflet Map Component with SSR disabled
 const AmbulanceTrackerMap = dynamic(() => import('./components/AmbulanceTrackerMap'), {
@@ -54,6 +58,7 @@ type TriageResponse = {
   confidence_score?: number;
   transcript?: string;
   mechanismOfInjury?: string;
+  first_aid_steps?: string[];
 };
 
 type Hospital = {
@@ -74,9 +79,10 @@ type ActiveDispatchData = {
   hospitalLocation: { lat: number; lng: number };
 } | null;
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://fast-coats-do.loca.lt';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 export default function ParamedicTriageApp() {
+  const [showOnboarding, setShowOnboarding] = useState(true);
   const [navTab, setNavTab] = useState<'dispatch' | 'history'>('dispatch');
   const [inputTab, setInputTab] = useState<'mic' | 'text'>('mic');
   const [vitalsText, setVitalsText] = useState('');
@@ -97,8 +103,9 @@ export default function ParamedicTriageApp() {
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // User Geolocation Coordinates
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 37.7749, lng: -122.4194 });
+  // User Geolocation Coordinates (Default Nagpur Region: 21.1458, 79.0882) & Manual Search Query
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 21.1458, lng: 79.0882 });
+  const [locationQuery, setLocationQuery] = useState('');
 
   // Modal state for active ambulance dispatch tracking
   const [activeDispatch, setActiveDispatch] = useState<ActiveDispatchData>(null);
@@ -128,6 +135,24 @@ export default function ParamedicTriageApp() {
       fileInputRef.current.value = '';
     }
   };
+
+  // Trigger Live Browser Geolocation on Page Load
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserCoords({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (err) => {
+          console.warn('Auto browser geolocation on page load warning:', err.message);
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   // Load History from localStorage on Mount
   useEffect(() => {
@@ -294,14 +319,23 @@ export default function ParamedicTriageApp() {
         formData.append('imageFile', sceneImage);
       }
 
-      const response = await fetch(`${BACKEND_URL}/api/triage`, {
-        method: 'POST',
-        headers: {
-          'Bypass-Tunnel-Reminder': 'true',
-          'User-Agent': 'NationalTriageApp/1.0',
-        },
-        body: formData,
-      });
+      let response: Response;
+      try {
+        response = await fetch(`${BACKEND_URL}/api/triage`, {
+          method: 'POST',
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            'User-Agent': 'NationalTriageApp/1.0',
+          },
+          body: formData,
+        });
+      } catch (backendErr) {
+        console.warn('Primary backend unreachable, using internal API route fallback:', backendErr);
+        response = await fetch('/api/triage', {
+          method: 'POST',
+          body: formData,
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`Server returned HTTP ${response.status}`);
@@ -312,7 +346,7 @@ export default function ParamedicTriageApp() {
       saveToHistory(result);
     } catch (err: any) {
       console.error('Failed to analyze audio:', err);
-      setErrorMsg(`Failed to connect to backend server at ${BACKEND_URL}/api/triage (${err.message}).`);
+      setErrorMsg(`Failed to analyze triage audio (${err.message}). Make sure backend server is running or try text input.`);
     } finally {
       setLoading(false);
     }
@@ -333,29 +367,48 @@ export default function ParamedicTriageApp() {
 
     try {
       let response: Response;
-      if (sceneImage) {
-        const formData = new FormData();
-        formData.append('vitalsText', vitalsText);
-        formData.append('imageFile', sceneImage);
+      try {
+        if (sceneImage) {
+          const formData = new FormData();
+          formData.append('vitalsText', vitalsText);
+          formData.append('imageFile', sceneImage);
 
-        response = await fetch(`${BACKEND_URL}/api/triage`, {
-          method: 'POST',
-          headers: {
-            'Bypass-Tunnel-Reminder': 'true',
-            'User-Agent': 'NationalTriageApp/1.0',
-          },
-          body: formData,
-        });
-      } else {
-        response = await fetch(`${BACKEND_URL}/api/triage`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Bypass-Tunnel-Reminder': 'true',
-            'User-Agent': 'NationalTriageApp/1.0',
-          },
-          body: JSON.stringify({ vitalsText }),
-        });
+          response = await fetch(`${BACKEND_URL}/api/triage`, {
+            method: 'POST',
+            headers: {
+              'Bypass-Tunnel-Reminder': 'true',
+              'User-Agent': 'NationalTriageApp/1.0',
+            },
+            body: formData,
+          });
+        } else {
+          response = await fetch(`${BACKEND_URL}/api/triage`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Bypass-Tunnel-Reminder': 'true',
+              'User-Agent': 'NationalTriageApp/1.0',
+            },
+            body: JSON.stringify({ vitalsText }),
+          });
+        }
+      } catch (backendErr) {
+        console.warn('Primary backend unreachable, using internal API route fallback:', backendErr);
+        if (sceneImage) {
+          const formData = new FormData();
+          formData.append('vitalsText', vitalsText);
+          formData.append('imageFile', sceneImage);
+          response = await fetch('/api/triage', {
+            method: 'POST',
+            body: formData,
+          });
+        } else {
+          response = await fetch('/api/triage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vitalsText }),
+          });
+        }
       }
 
       if (!response.ok) {
@@ -367,16 +420,16 @@ export default function ParamedicTriageApp() {
       saveToHistory(result);
     } catch (err: any) {
       console.error('Failed to analyze text:', err);
-      setErrorMsg(`Failed to connect to backend server at ${BACKEND_URL}/api/triage (${err.message}).`);
+      setErrorMsg(`Failed to analyze text (${err.message}). Please verify input and try again.`);
     } finally {
       setLoading(false);
     }
   };
 
-  // 3. Find Nearest Care (Google Maps Places API Hospital Search)
+  // 3. Find Nearest Care (Real-Time Live GPS & OpenStreetMap / Google Places API Search)
   const handleFindNearestCare = () => {
     if (!navigator.geolocation) {
-      setErrorMsg('Geolocation is not supported by your browser.');
+      setErrorMsg('Geolocation is not supported by your browser. Use the City/ZIP search bar below.');
       return;
     }
 
@@ -390,15 +443,24 @@ export default function ParamedicTriageApp() {
         const specialty = triageData?.category || 'Emergency Care';
 
         try {
-          const res = await fetch(
-            `${BACKEND_URL}/api/hospitals?lat=${latitude}&lng=${longitude}&specialty=${encodeURIComponent(specialty)}`,
-            {
-              headers: {
-                'Bypass-Tunnel-Reminder': 'true',
-                'User-Agent': 'NationalTriageApp/1.0',
-              },
-            }
-          );
+          let res: Response;
+          try {
+            res = await fetch(
+              `${BACKEND_URL}/api/hospitals?lat=${latitude}&lng=${longitude}&specialty=${encodeURIComponent(specialty)}`,
+              {
+                headers: {
+                  'Bypass-Tunnel-Reminder': 'true',
+                  'User-Agent': 'NationalTriageApp/1.0',
+                },
+              }
+            );
+          } catch (backendErr) {
+            console.warn('Backend server unreachable, using local /api/hospitals fallback:', backendErr);
+            res = await fetch(
+              `/api/hospitals?lat=${latitude}&lng=${longitude}&specialty=${encodeURIComponent(specialty)}`
+            );
+          }
+
           if (!res.ok) {
             throw new Error(`Hospital search failed with status ${res.status}`);
           }
@@ -415,26 +477,81 @@ export default function ParamedicTriageApp() {
         }
       },
       (geoErr) => {
-        console.warn('Geolocation error, using fallback location:', geoErr.message);
-        fetchHospitalsWithCoordinates(37.7749, -122.4194);
+        console.warn('Geolocation permission denied or error:', geoErr.message);
+        setErrorMsg('Live GPS permission denied or timed out. Please enter your City name or ZIP code in the search bar below.');
+        fetchHospitalsWithCoordinates(21.1458, 79.0882);
       },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 12000, enableHighAccuracy: true }
     );
+  };
+
+  // Manual City or ZIP Code Search Handler
+  const handleCityOrZipSearch = async (queryText?: string) => {
+    const q = (queryText || locationQuery).trim();
+    if (!q) return;
+
+    setFetchingHospitals(true);
+    setErrorMsg(null);
+    const specialty = triageData?.category || 'Emergency Care';
+
+    try {
+      let res: Response;
+      try {
+        res = await fetch(
+          `${BACKEND_URL}/api/hospitals?query=${encodeURIComponent(q)}&specialty=${encodeURIComponent(specialty)}`,
+          {
+            headers: {
+              'Bypass-Tunnel-Reminder': 'true',
+              'User-Agent': 'NationalTriageApp/1.0',
+            },
+          }
+        );
+      } catch (backendErr) {
+        res = await fetch(
+          `/api/hospitals?query=${encodeURIComponent(q)}&specialty=${encodeURIComponent(specialty)}`
+        );
+      }
+
+      if (res.ok) {
+        const data: Hospital[] = await res.json();
+        setHospitals(data);
+        if (data && data.length > 0) {
+          setUserCoords({ lat: data[0].lat, lng: data[0].lng });
+          setExpandedHospitalId(data[0].place_id);
+        }
+      } else {
+        throw new Error(`Location query search failed with status ${res.status}`);
+      }
+    } catch (err: any) {
+      console.error('City search error:', err);
+      setErrorMsg(`Failed to find hospitals for "${q}": ${err.message}`);
+    } finally {
+      setFetchingHospitals(false);
+    }
   };
 
   const fetchHospitalsWithCoordinates = async (lat: number, lng: number) => {
     setUserCoords({ lat, lng });
     const specialty = triageData?.category || 'Emergency Care';
     try {
-      const res = await fetch(
-        `${BACKEND_URL}/api/hospitals?lat=${lat}&lng=${lng}&specialty=${encodeURIComponent(specialty)}`,
-        {
-          headers: {
-            'Bypass-Tunnel-Reminder': 'true',
-            'User-Agent': 'NationalTriageApp/1.0',
-          },
-        }
-      );
+      let res: Response;
+      try {
+        res = await fetch(
+          `${BACKEND_URL}/api/hospitals?lat=${lat}&lng=${lng}&specialty=${encodeURIComponent(specialty)}`,
+          {
+            headers: {
+              'Bypass-Tunnel-Reminder': 'true',
+              'User-Agent': 'NationalTriageApp/1.0',
+            },
+          }
+        );
+      } catch (backendErr) {
+        console.warn('Backend server unreachable, using local /api/hospitals fallback:', backendErr);
+        res = await fetch(
+          `/api/hospitals?lat=${lat}&lng=${lng}&specialty=${encodeURIComponent(specialty)}`
+        );
+      }
+
       if (res.ok) {
         const data: Hospital[] = await res.json();
         setHospitals(data);
@@ -463,6 +580,27 @@ export default function ParamedicTriageApp() {
     if (triageData) {
       saveToHistory(triageData, hospital.name);
 
+      const newDispatchItem = {
+        id: `dispatch-${Date.now()}`,
+        hospitalId: hospital.place_id,
+        hospitalName: hospital.name,
+        priority: triageData.priority,
+        category: triageData.category,
+        summary: triageData.summary,
+        mechanismOfInjury: triageData.mechanismOfInjury,
+        etaMinutes: 6.5,
+        status: 'IN_TRANSIT',
+        timestamp: Date.now(),
+      };
+
+      try {
+        const existing = JSON.parse(localStorage.getItem('national_triage_dispatches') || '[]');
+        const updatedDispatches = [newDispatchItem, ...existing.filter((d: any) => d.id !== newDispatchItem.id)];
+        localStorage.setItem('national_triage_dispatches', JSON.stringify(updatedDispatches));
+      } catch (e) {
+        console.warn('Failed to save dispatch to localStorage:', e);
+      }
+
       // Persist live dispatch to Spring Boot backend /api/dispatch
       try {
         await fetch(`${BACKEND_URL}/api/dispatch`, {
@@ -479,7 +617,7 @@ export default function ParamedicTriageApp() {
             category: triageData.category,
             summary: triageData.summary,
             mechanismOfInjury: triageData.mechanismOfInjury,
-            etaMinutes: 5.0,
+            etaMinutes: 6.5,
             status: 'IN_TRANSIT',
           }),
         });
@@ -501,58 +639,62 @@ export default function ParamedicTriageApp() {
     else if (isCardiac) categoryIcon = Heart;
     else if (isOrtho) categoryIcon = Activity;
 
-    switch (priority?.toUpperCase()) {
-      case 'CRITICAL':
-        return {
-          bg: 'bg-red-950/90',
-          border: 'border-red-500 ring-1 ring-red-500/50',
-          glow: 'shadow-[0_0_25px_rgba(239,68,68,0.5)]',
-          text: 'text-red-400',
-          badge: 'bg-red-600 text-white font-black shadow-md',
-          icon: isFire ? Flame : AlertTriangle,
-          categoryIcon,
-        };
-      case 'HIGH':
-        return {
-          bg: 'bg-amber-950/90',
-          border: 'border-amber-500',
-          glow: 'shadow-[0_0_20px_rgba(245,158,11,0.3)]',
-          text: 'text-amber-400',
-          badge: 'bg-amber-600 text-white font-extrabold',
-          icon: isFire ? Flame : Activity,
-          categoryIcon,
-        };
-      case 'MEDIUM':
-        return {
-          bg: 'bg-amber-950/70',
-          border: 'border-yellow-600',
-          glow: 'shadow-[0_0_15px_rgba(234,179,8,0.2)]',
-          text: 'text-yellow-400',
-          badge: 'bg-yellow-600 text-slate-950 font-black',
-          icon: Activity,
-          categoryIcon,
-        };
-      case 'LOW':
-        return {
-          bg: 'bg-emerald-950/80',
-          border: 'border-emerald-500',
-          glow: 'shadow-[0_0_15px_rgba(16,185,129,0.2)]',
-          text: 'text-emerald-400',
-          badge: 'bg-emerald-600 text-white font-extrabold',
-          icon: CheckCircle,
-          categoryIcon,
-        };
-      default:
-        return {
-          bg: 'bg-slate-900',
-          border: 'border-slate-700',
-          glow: 'shadow-lg',
-          text: 'text-slate-300',
-          badge: 'bg-slate-700 text-white',
-          icon: AlertTriangle,
-          categoryIcon,
-        };
+    const p = priority?.toUpperCase() || '';
+
+    if (p === 'RED' || p === 'CRITICAL') {
+      return {
+        bg: 'bg-red-950/90',
+        border: 'border-red-500 ring-2 ring-red-500/50',
+        glow: 'shadow-[0_0_30px_rgba(239,68,68,0.5)]',
+        text: 'text-red-400',
+        badge: 'bg-red-600 text-white font-black shadow-md tracking-wider',
+        icon: isFire ? Flame : AlertTriangle,
+        categoryIcon,
+      };
     }
+    if (p === 'YELLOW' || p === 'HIGH' || p === 'MEDIUM') {
+      return {
+        bg: 'bg-amber-950/90',
+        border: 'border-amber-400 ring-2 ring-amber-500/50',
+        glow: 'shadow-[0_0_25px_rgba(245,158,11,0.4)]',
+        text: 'text-amber-400',
+        badge: 'bg-amber-500 text-slate-950 font-black shadow-md tracking-wider',
+        icon: isFire ? Flame : Activity,
+        categoryIcon,
+      };
+    }
+    if (p === 'GREEN' || p === 'LOW') {
+      return {
+        bg: 'bg-emerald-950/80',
+        border: 'border-emerald-500 ring-2 ring-emerald-500/50',
+        glow: 'shadow-[0_0_20px_rgba(16,185,129,0.3)]',
+        text: 'text-emerald-400',
+        badge: 'bg-emerald-600 text-white font-black shadow-md tracking-wider',
+        icon: CheckCircle,
+        categoryIcon,
+      };
+    }
+    if (p === 'BLACK' || p === 'DECEASED') {
+      return {
+        bg: 'bg-zinc-950',
+        border: 'border-zinc-700 ring-2 ring-red-900/60',
+        glow: 'shadow-[0_0_25px_rgba(0,0,0,0.9)]',
+        text: 'text-zinc-300',
+        badge: 'bg-zinc-900 border border-red-500 text-red-400 font-black shadow-md tracking-wider',
+        icon: AlertTriangle,
+        categoryIcon,
+      };
+    }
+
+    return {
+      bg: 'bg-slate-900',
+      border: 'border-slate-700',
+      glow: 'shadow-lg',
+      text: 'text-slate-300',
+      badge: 'bg-slate-700 text-white font-bold',
+      icon: AlertTriangle,
+      categoryIcon,
+    };
   };
 
   const theme = triageData ? getThemeByPriority(triageData.priority, triageData.category) : null;
@@ -560,6 +702,25 @@ export default function ParamedicTriageApp() {
 
   return (
     <div className="min-h-screen lg:h-screen w-full bg-slate-950 text-white flex flex-col font-sans overflow-x-hidden select-none">
+      {/* Initial Loading & Onboarding Flow Overlay (State 1: Splash, State 2: Disclaimer, State 3: Onboarding) */}
+      {showOnboarding && (
+        <OnboardingFlow
+          onComplete={() => setShowOnboarding(false)}
+        />
+      )}
+
+      {/* Floating Button to Re-trigger Onboarding & Disclaimer */}
+      {!showOnboarding && (
+        <button
+          onClick={() => setShowOnboarding(true)}
+          title="Re-open Onboarding & Emergency Disclaimer"
+          className="fixed bottom-4 right-4 z-40 p-3 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white shadow-xl backdrop-blur-md flex items-center space-x-2 text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <ShieldAlert className="w-4 h-4 text-red-400 animate-pulse" />
+          <span className="hidden sm:inline">Emergency Guide / Disclaimer</span>
+        </button>
+      )}
+
       {/* Top Command Navbar */}
       <Navbar
         activeTab={navTab}
@@ -807,6 +968,24 @@ export default function ParamedicTriageApp() {
                   </div>
                 )}
 
+                {/* AI-Generated Immediate First Aid Protocols (Dispatcher Phone Script) */}
+                {triageData.first_aid_steps && triageData.first_aid_steps.length > 0 && (
+                  <div>
+                    <div className="flex items-center space-x-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                      <LifeBuoy className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                      <span>Immediate First Aid Protocols (Dispatcher Script)</span>
+                    </div>
+                    <div className="mt-1 bg-black/70 p-3 rounded-xl border border-slate-800/90 space-y-2">
+                      {triageData.first_aid_steps.map((step, idx) => (
+                        <div key={idx} className="flex items-start space-x-2 text-xs text-slate-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                          <span className="font-medium leading-relaxed">{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Find Nearest Care Button (Prominent GREEN Medical Button) */}
                 <div className="pt-2 border-t border-slate-800/80">
                   <button
@@ -832,9 +1011,6 @@ export default function ParamedicTriageApp() {
           )}
         </section>
 
-        {/* =================================================== */}
-        {/* RIGHT COLUMN (2/3 Width): Hospital Command Dashboard */}
-        {/* =================================================== */}
         <section className="lg:col-span-2 h-auto lg:h-full overflow-y-visible lg:overflow-y-auto pl-0 lg:pl-1 space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
           <div className="border-b border-slate-800/80 pb-3 flex items-center justify-between">
             <h2 className="text-base font-black flex items-center space-x-2 text-white uppercase tracking-wider">
@@ -843,9 +1019,39 @@ export default function ParamedicTriageApp() {
             </h2>
             {hospitals && (
               <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-800">
-                {hospitals.length} Hospitals Loaded
+                {hospitals.length} Real Hospitals Loaded
               </span>
             )}
+          </div>
+
+          {/* Manual Location Search Bar (City or ZIP Code) */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 bg-slate-900/90 p-2.5 rounded-2xl border border-slate-800 shadow-md">
+            <div className="flex items-center space-x-2 flex-1 w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-300">
+              <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <input
+                type="text"
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCityOrZipSearch();
+                }}
+                placeholder="Search real hospitals by City or ZIP Code (e.g. Mumbai, New York, London, 90210)..."
+                className="w-full bg-transparent border-none text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
+              />
+              {locationQuery && (
+                <button onClick={() => setLocationQuery('')} className="text-slate-500 hover:text-white">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => handleCityOrZipSearch()}
+              disabled={fetchingHospitals || !locationQuery.trim()}
+              className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5 flex-shrink-0"
+            >
+              <Navigation className="w-3.5 h-3.5" />
+              <span>Search Location</span>
+            </button>
           </div>
 
           {/* If no hospital list fetched yet: Display Command Dashboard Overview */}

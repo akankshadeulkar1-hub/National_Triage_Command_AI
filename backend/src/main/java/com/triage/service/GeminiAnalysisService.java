@@ -40,6 +40,8 @@ public class GeminiAnalysisService {
         String systemPrompt = """
                 CRITICAL SYSTEM RULE: Act as an expert global Emergency Medical Officer. The input text from the paramedic will likely be in an Indian regional language (e.g., Hindi, Marathi, Bengali, Tamil). The text may be in native script or Romanized text. Your first and absolute requirement is to detect the input language, translate it to English, and process it entirely in English. You must NOT output any non-English text. Analyze the translated patient context and generate a standardized, clinical English summary. Standardize the priority as CRITICAL, HIGH, MEDIUM, or LOW based on standard triage protocols.
 
+                Based on the clinical summary, provide 3 to 5 immediate, actionable first-aid steps for a dispatcher to read over the phone. Return ONLY valid JSON matching the schema.
+
                 STRICT JSON OUTPUT REQUIREMENTS:
                 You MUST return ONLY a valid raw JSON object without Markdown formatting or backticks.
                 Keys required in JSON:
@@ -47,6 +49,7 @@ public class GeminiAnalysisService {
                 - "category": Medical specialty category (e.g., "Trauma", "Orthopedics & Trauma", "Burns / Smoke Inhalation", "Cardiac", "Mass Casualty / Major Accident").
                 - "summary": A standardized clinical English 1-2 sentence medical summary detailing translated patient context, critical injuries, and priority.
                 - "confidence_score": Floating point number between 0.0 and 1.0.
+                - "first_aid_steps": An array of 3 to 5 short, clear, actionable strings representing immediate first-aid instructions for a dispatcher to read over the phone.
 
                 Paramedic Incident Description (Native / Regional Input): "%s"
                 """.formatted(transcript);
@@ -129,35 +132,72 @@ public class GeminiAnalysisService {
         String priority;
         String category;
         String summary;
+        List<String> firstAidSteps;
         double confidence = 0.96;
 
         if (hasDeceased || (hasRegionalAccident && (hasRegionalBleeding || lower.contains("critical") || lower.contains("unconscious")))) {
             priority = "CRITICAL";
             category = "Mass Casualty / Major Accident";
             summary = "High-velocity collision incident translated from regional paramedic report. Severe traumatic injuries and hemorrhaging require immediate disaster triage team.";
+            firstAidSteps = List.of(
+                    "Maintain open airway and check breathing continuously.",
+                    "Apply firm, continuous direct pressure to active bleeding sites with clean cloth.",
+                    "Keep patient warm, still, and flat to treat for impending clinical shock.",
+                    "Do not give anything by mouth until paramedic arrival."
+            );
         } else if (hasRegionalPain || lower.contains("cardiac") || lower.contains("chest")) {
             priority = "CRITICAL";
             category = "Cardiac";
             summary = "Acute cardiovascular presentation translated from regional transcript. Severe retrosternal pain reported, requiring immediate ER EKG evaluation.";
+            firstAidSteps = List.of(
+                    "Keep patient calm and seated in a semi-upright resting position.",
+                    "Loosen tight clothing around throat and chest to assist breathing.",
+                    "Prepare AED if pulse weakens or patient loses consciousness.",
+                    "Do not allow patient to walk or exert physical effort."
+            );
         } else if (hasRegionalBreath) {
             priority = "CRITICAL";
             category = "Respiratory";
             summary = "Severe respiratory distress translated from regional transcript. Immediate supplemental oxygenation and airway management indicated.";
+            firstAidSteps = List.of(
+                    "Sit patient upright to maximize lung chest expansion.",
+                    "Loosen restrictive neck collars, buttons, or belts.",
+                    "Administer prescribed rescue inhaler if patient is responsive.",
+                    "Reassure patient and monitor respiration count."
+            );
         } else if (hasOrtho || lower.contains("haddi")) {
             priority = "HIGH";
             category = "Orthopedics & Trauma";
             summary = "Skeletal trauma with suspected fracture translated from regional voice transcript. Immobilization and urgent X-ray required.";
+            firstAidSteps = List.of(
+                    "Immobilize injured limb using rigid splint or padding without forcing alignment.",
+                    "Apply cold pack wrapped in towel to reduce acute localized swelling.",
+                    "Cover open bone injuries with clean sterile dressing.",
+                    "Do not allow patient to bear weight on injured limb."
+            );
         } else if (hasRegionalFire) {
             priority = "HIGH";
             category = "Burns / Smoke Inhalation";
             summary = "Thermal burn exposure translated from regional paramedic report. Airway assessment for smoke inhalation initiated.";
+            firstAidSteps = List.of(
+                    "Cool burn areas under cool running water for at least 10 minutes.",
+                    "Remove burnt clothing unless stuck directly to burned skin.",
+                    "Cover burn loosely with clean, non-stick sterile sheet.",
+                    "Move patient to fresh air if smoke inhalation occurred."
+            );
         } else {
             priority = "MEDIUM";
             category = "Trauma";
             summary = "Incident presentation translated from regional language input into standardized clinical English for ER standby.";
+            firstAidSteps = List.of(
+                    "Keep patient comfortable in a safe, seated position.",
+                    "Clean minor surface abrasions gently with clean water.",
+                    "Apply clean bandage to open superficial cuts.",
+                    "Re-evaluate immediately if symptoms escalate before arrival."
+            );
             confidence = 0.90;
         }
 
-        return new TriageResponse(priority, category, summary, confidence, transcript, null);
+        return new TriageResponse(priority, category, summary, confidence, transcript, null, firstAidSteps);
     }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Trash2, Clock, MapPin, Activity, AlertTriangle, CheckCircle, Flame, Heart, Stethoscope, ChevronRight } from 'lucide-react';
+import { X, Trash2, Clock, MapPin, Activity, AlertTriangle, CheckCircle, Flame, Heart, Stethoscope, ChevronRight, LifeBuoy, CheckCircle2 } from 'lucide-react';
 
 export type HistoryItem = {
   id: string;
@@ -12,6 +12,7 @@ export type HistoryItem = {
   transcript?: string;
   dispatchedHospital?: string | null;
   mechanismOfInjury?: string;
+  first_aid_steps?: string[];
 };
 
 interface CaseHistoryDrawerProps {
@@ -32,38 +33,41 @@ export default function CaseHistoryDrawer({
   if (!isOpen) return null;
 
   const getPriorityStyle = (priority: string) => {
-    switch (priority?.toUpperCase()) {
-      case 'CRITICAL':
-        return {
-          cardBg: 'bg-red-950/30 hover:bg-red-950/50 border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.25)]',
-          badge: 'bg-red-600 text-white',
-          text: 'text-red-400',
-        };
-      case 'HIGH':
-        return {
-          cardBg: 'bg-amber-950/30 hover:bg-amber-950/50 border-amber-500/80',
-          badge: 'bg-amber-600 text-white',
-          text: 'text-amber-400',
-        };
-      case 'MEDIUM':
-        return {
-          cardBg: 'bg-yellow-950/30 hover:bg-yellow-950/50 border-yellow-500/80',
-          badge: 'bg-yellow-600 text-slate-950 font-black',
-          text: 'text-yellow-400',
-        };
-      case 'LOW':
-        return {
-          cardBg: 'bg-emerald-950/30 hover:bg-emerald-950/50 border-emerald-500/80',
-          badge: 'bg-emerald-600 text-white',
-          text: 'text-emerald-400',
-        };
-      default:
-        return {
-          cardBg: 'bg-slate-900 hover:bg-slate-800 border-slate-800',
-          badge: 'bg-slate-700 text-white',
-          text: 'text-slate-300',
-        };
+    const p = priority?.toUpperCase() || '';
+    if (p === 'RED' || p === 'CRITICAL') {
+      return {
+        cardBg: 'bg-red-950/40 hover:bg-red-950/60 border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.3)]',
+        badge: 'bg-red-600 text-white font-black',
+        text: 'text-red-400',
+      };
     }
+    if (p === 'YELLOW' || p === 'HIGH' || p === 'MEDIUM') {
+      return {
+        cardBg: 'bg-amber-950/40 hover:bg-amber-950/60 border-amber-500/80 shadow-[0_0_15px_rgba(245,158,11,0.25)]',
+        badge: 'bg-amber-500 text-slate-950 font-black',
+        text: 'text-amber-400',
+      };
+    }
+    if (p === 'GREEN' || p === 'LOW') {
+      return {
+        cardBg: 'bg-emerald-950/40 hover:bg-emerald-950/60 border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.25)]',
+        badge: 'bg-emerald-600 text-white font-extrabold',
+        text: 'text-emerald-400',
+      };
+    }
+    if (p === 'BLACK' || p === 'DECEASED') {
+      return {
+        cardBg: 'bg-zinc-950 hover:bg-zinc-900 border-red-900/80 shadow-[0_0_15px_rgba(0,0,0,0.5)]',
+        badge: 'bg-zinc-900 border border-red-500 text-red-400 font-black',
+        text: 'text-zinc-400',
+      };
+    }
+
+    return {
+      cardBg: 'bg-slate-900 hover:bg-slate-800 border-slate-800',
+      badge: 'bg-slate-700 text-white',
+      text: 'text-slate-300',
+    };
   };
 
   const getCategoryIcon = (category: string) => {
@@ -142,6 +146,23 @@ export default function CaseHistoryDrawer({
                   <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed bg-black/40 p-2.5 rounded-lg border border-slate-800/80">
                     {item.summary}
                   </p>
+
+                  {item.first_aid_steps && item.first_aid_steps.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <div className="flex items-center space-x-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                        <LifeBuoy className="w-3 h-3 text-emerald-400" />
+                        <span>First Aid Protocol</span>
+                      </div>
+                      <div className="bg-black/50 p-2 rounded-lg border border-slate-800/80 space-y-1">
+                        {item.first_aid_steps.slice(0, 3).map((step, idx) => (
+                          <div key={idx} className="flex items-start space-x-1.5 text-[11px] text-slate-300">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0 mt-0.5" />
+                            <span className="line-clamp-1">{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {item.dispatchedHospital && (
                     <div className="flex items-center space-x-1 text-[11px] font-semibold text-emerald-400 pt-1">

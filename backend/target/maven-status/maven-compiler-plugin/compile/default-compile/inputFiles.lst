@@ -5,9 +5,11 @@ C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\config\WebSocketCo
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\dto\ActiveDispatch.java
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\TriageApplication.java
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\dto\TriageResponse.java
+C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\service\JwtService.java
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\service\MapsService.java
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\service\TriageService.java
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\dto\HospitalDto.java
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\service\SpeechToTextService.java
+C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\controller\AuthController.java
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\controller\HospitalController.java
 C:\Users\SHREE\triage-system\backend\src\main\java\com\triage\controller\TriageController.java

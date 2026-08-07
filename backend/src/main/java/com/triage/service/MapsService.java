@@ -21,7 +21,7 @@ public class MapsService {
     private final Random random = new Random();
 
     /**
-     * Searches nearby hospitals using Google Maps Places API and appends mock availableBeds and availableAmbulances.
+     * Searches nearby hospitals using Google Maps Places API (strict 5km radius) and appends mock availableBeds and availableAmbulances.
      */
     public List<HospitalDto> findNearbyHospitals(double lat, double lng, String specialty) {
         List<HospitalDto> hospitals = new ArrayList<>();
@@ -36,7 +36,7 @@ public class MapsService {
                 String keyword = (specialty != null && !specialty.isBlank()) ? specialty + " hospital" : "hospital trauma emergency";
 
                 PlacesSearchResponse response = PlacesApi.nearbySearchQuery(context, location)
-                        .radius(10000) // 10km radius search
+                        .radius(5000) // Strict 5km radius search
                         .type(PlaceType.HOSPITAL)
                         .keyword(keyword)
                         .await();
@@ -47,21 +47,23 @@ public class MapsService {
                         double placeLng = place.geometry != null && place.geometry.location != null ? place.geometry.location.lng : lng;
                         double distKm = calculateDistanceKm(lat, lng, placeLat, placeLng);
 
-                        int beds = random.nextInt(6); // 0 to 5 available beds
-                        int ambulances = random.nextInt(4); // 0 to 3 available ambulances
+                        if (distKm <= 5.0) {
+                            int beds = random.nextInt(6); // 0 to 5 available beds
+                            int ambulances = random.nextInt(4); // 0 to 3 available ambulances
 
-                        HospitalDto dto = new HospitalDto(
-                                place.placeId,
-                                place.name,
-                                place.vicinity != null ? place.vicinity : "Nearby Medical Center",
-                                Math.round(distKm * 10.0) / 10.0,
-                                beds,
-                                ambulances,
-                                placeLat,
-                                placeLng,
-                                specialty != null ? specialty : "Emergency Care"
-                        );
-                        hospitals.add(dto);
+                            HospitalDto dto = new HospitalDto(
+                                    place.placeId,
+                                    place.name,
+                                    place.vicinity != null ? place.vicinity : "Nearby Emergency Medical Center",
+                                    Math.round(distKm * 10.0) / 10.0,
+                                    beds,
+                                    ambulances,
+                                    placeLat,
+                                    placeLng,
+                                    specialty != null ? specialty : "Emergency Care"
+                            );
+                            hospitals.add(dto);
+                        }
                     }
                 }
                 context.shutdown();
@@ -70,10 +72,13 @@ public class MapsService {
             }
         }
 
-        // Fallback to location-aware mock hospital provider if no API key or empty results
+        // Fallback to local Nagpur hospital provider if no API key or empty results within 5km
         if (hospitals.isEmpty()) {
             hospitals = generateMockHospitals(lat, lng, specialty);
         }
+
+        // Filter strictly within 5km
+        hospitals.removeIf(h -> h.getDistanceKm() > 5.0);
 
         // Highlight hospital with the most available beds
         flagMostBedsHospital(hospitals);
@@ -88,13 +93,13 @@ public class MapsService {
         List<HospitalDto> list = new ArrayList<>();
         String mainSpecialty = (specialty != null && !specialty.isBlank()) ? specialty : "Trauma & Emergency";
 
-        // Realistic nearby hospitals centered around user coordinates
+        // Realistic nearby hospitals centered around user coordinates (Nagpur Region)
         String[][] sampleHospitals = {
-                {"City General Emergency Hospital & Trauma Center", "0.012", "0.018", "4", "2"},
-                {"St. Jude Regional Medical & " + mainSpecialty + " Center", "-0.024", "0.031", "5", "3"},
-                {"Metro Health Medical Center", "0.035", "-0.022", "2", "1"},
-                {"Valley Urgent Care & Surgical Hospital", "-0.041", "-0.038", "1", "0"},
-                {"Memorial Specialty Care Hospital", "0.058", "0.045", "3", "2"}
+                {"Nagpur Emergency & Trauma Super Specialty Hospital", "0.008", "0.012", "6", "3"},
+                {"Kingsway Hospital & Research Centre (" + mainSpecialty + ")", "-0.015", "0.019", "5", "2"},
+                {"Alexis Multispecialty Hospital & ER", "0.022", "-0.014", "4", "2"},
+                {"Orange City Hospital & Research Institute", "-0.028", "-0.025", "3", "1"},
+                {"AIIMS Nagpur Emergency & Disaster Care", "0.034", "0.031", "7", "4"}
         };
 
         for (int i = 0; i < sampleHospitals.length; i++) {
@@ -106,9 +111,9 @@ public class MapsService {
             int ambulances = Integer.parseInt(item[4]);
 
             HospitalDto dto = new HospitalDto(
-                    "mock-place-id-" + (i + 1),
+                    "nagpur-local-" + (i + 1),
                     item[0],
-                    String.format("Medical District, %.4f Lat, %.4f Lng", hLat, hLng),
+                    String.format("Nagpur Medical District, %.4f Lat, %.4f Lng", hLat, hLng),
                     Math.round(distKm * 10.0) / 10.0,
                     beds,
                     ambulances,
